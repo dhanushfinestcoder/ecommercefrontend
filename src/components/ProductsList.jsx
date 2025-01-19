@@ -13,18 +13,26 @@ const ProductsList = () => {
   const productsPerPage = 5; // Number of products to show per page
   const navigate = useNavigate();
 
+  // Get page number from the URL using useParams
+  useEffect(() => {
+    const pageFromUrl = new URLSearchParams(window.location.search).get('page');
+    if (pageFromUrl) {
+      setCurrentPage(Number(pageFromUrl)); // Update currentPage based on URL
+    }
+  }, [categoryId]);
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`http://localhost:8080/getProductsByCategory/${categoryId}`, {
           withCredentials: true
         });
-        setProducts(response.data); 
+        setProducts(response.data);
         setTotalPages(Math.ceil(response.data.length / productsPerPage)); // Calculate total pages
       } catch (error) {
-        setError(error.message);  
+        setError(error.message);
       } finally {
-        setLoadingProducts(false);  
+        setLoadingProducts(false);
       }
     };
 
@@ -41,6 +49,7 @@ const ProductsList = () => {
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
+    navigate(`/products/${categoryId}?page=${value}`); // Update the URL with the page number
   };
 
   if (loadingProducts) {

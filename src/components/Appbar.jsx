@@ -13,8 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Avatar from '@mui/material/Avatar';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import CategoriesList from './CategoriesList';
-import { Card, CardContent, CardMedia, CircularProgress, Pagination } from '@mui/material';
+import { CircularProgress, Pagination, Card, CardContent, CardMedia } from '@mui/material';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -53,7 +52,6 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 export default function Appbar() {
   const [menuAnchorEl, setMenuAnchorEl] = useState(null); // For main menu
   const [userAnchorEl, setUserAnchorEl] = useState(null); // For user dropdown
-  const [viewCategories, setViewCategories] = useState(false);
   const [user, setUser] = useState(null); // For dynamic user data
   const [loading, setLoading] = useState(true); // For loading state
   const [error, setError] = useState(null); // For error state
@@ -61,6 +59,7 @@ export default function Appbar() {
   const [products, setProducts] = useState([]); // Store product data
   const [viewAllProducts, setViewAllProducts] = useState(false); // For viewing all products
   const [currentPage, setCurrentPage] = useState(1); // For pagination
+  const [maxPrice, setMaxPrice] = useState(0); // Set a default maxPrice
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,11 +88,31 @@ export default function Appbar() {
 
     setLoading(true);
     setViewAllProducts(false); // Switch to search results
+
+    let splitSearch = searchTerm.split(' '); // Split the search term by spaces
+    let searchKeyword = splitSearch.filter(item => isNaN(item)).join(' '); // Remove numbers for the keyword
+    let maxPriceValue = 0;
+
+    // Check if any part of the splitSearch array is a valid number and set it as maxPrice
+    splitSearch.forEach(item => {
+      if (!isNaN(item) && item.trim()) {
+        maxPriceValue = Math.max(maxPriceValue, parseFloat(item)); // Keep the largest number as maxPrice
+      }
+    });
+
+    setMaxPrice(maxPriceValue); // Set the maxPrice state
+
+    // Log the result to verify the split
+    console.log('Search Keyword:', searchKeyword);
+    console.log('Max Price:', maxPriceValue);
+
+    // Make the request with the correct keyword and maxPrice
     axios
-      .get(`http://localhost:8080/SEARCH?keyword=${encodeURIComponent(searchTerm)}`, {
+      .get(`http://localhost:8080/search/price?keyword=${encodeURIComponent(searchKeyword)}&maxPrice=${maxPriceValue}`, {
         withCredentials: true,
       })
       .then((response) => {
+        console.log(response.data);
         setProducts(response.data);
         setLoading(false);
       })
@@ -119,30 +138,18 @@ export default function Appbar() {
     setUserAnchorEl(null);
   };
 
-  const handleAddCategoryClick = () => {
-    navigate('/add-category');
+  const handleViewCategoriesClick = () => {
+    navigate('/categories'); // Navigate to the Categories page
     handleMenuClose();
   };
 
-  const handleViewCategoriesClick = () => {
-    setViewCategories(true);
+  const handleAddCategoryClick = () => {
+    navigate('/add-category'); // Navigate to the Add Category page
     handleMenuClose();
   };
 
   const handleViewProductsClick = () => {
-    setLoading(true);
-    setError(null);
-    setViewAllProducts(true); // Switch to view all products
-    axios
-      .get('http://localhost:8080/getProducts', { withCredentials: true }) // Replace with the correct endpoint
-      .then((response) => {
-        setProducts(response.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError('Error fetching all products.');
-        setLoading(false);
-      });
+    navigate('/products'); // Navigate to the View Products page
     handleMenuClose();
   };
 
@@ -221,57 +228,10 @@ export default function Appbar() {
         </Toolbar>
       </AppBar>
       <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={handleAddCategoryClick}>Add Category</MenuItem>
         <MenuItem onClick={handleViewCategoriesClick}>View Categories</MenuItem>
+        <MenuItem onClick={handleAddCategoryClick}>Add Category</MenuItem>
         <MenuItem onClick={handleViewProductsClick}>View Products</MenuItem>
       </Menu>
-      {viewCategories && <CategoriesList />}
-      <Box sx={{ padding: '16px' }}>
-        {loading && <CircularProgress sx={{ margin: 'auto', display: 'block' }} />}
-        {error && <Typography variant="body2" color="error">{error}</Typography>}
-        {products.length > 0 ? (
-          <>
-            <Typography variant="h6">
-              {viewAllProducts ? 'All Products:' : 'Search Results:'}
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
-              {products.map((product) => (
-                <Card key={product.productId} sx={{ width: '300px', padding: '16px' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image="https://via.placeholder.com/300x200" // Replace with actual image URL
-                    alt={product.productName}
-                  />
-                  <CardContent>
-                    <Typography variant="h6">{product.productName}</Typography>
-                    <Typography variant="body1">₹{product.discountPrice}</Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ textDecoration: 'line-through' }}
-                    >
-                      MRP: ₹{product.mrp}
-                    </Typography>
-                    <Typography variant="body2">
-                      Units Available: {product.noOfunits}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-              <Pagination
-                count={Math.ceil(products.length / 5)} // Adjust items per page
-                page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-              />
-            </Box>
-          </>
-        ) : (
-          <Typography>No products found</Typography>
-        )}
-      </Box>
     </Box>
   );
 }

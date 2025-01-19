@@ -14,14 +14,19 @@ const CategoriesList = () => {
 
     const fetchCategories = async () => {
       try {
-        console.log('Making API request...');  
-        const response = await axios.get('http://localhost:8080/getCategories',{
-          withCredentials:true,
+        console.log('Making API request...');
+        const response = await axios.get('http://localhost:8080/getCategories', {
+          withCredentials: true,
         });
-        //console.log('Data received:', response.data);
-        setCategories(response.data || []);
+
+        // Log the API response for debugging
+        console.log('API Response:', response.data);
+
+        // Ensure response.data is an array, else set empty array
+        setCategories(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.log('Error caught in catch block:', error);  
+        // Log error to debug response structure
+        console.log('Error caught in catch block:', error.response ? error.response.data : error.message);
         setError(error.response ? error.response.data : error.message);
       } finally {
         setLoadingCategories(false);
@@ -44,7 +49,7 @@ const CategoriesList = () => {
       {/* Back to AppBar Button */}
       <Button
         variant="contained"
-        onClick={() => navigate('/')}  // Navigate to the home page or AppBar page
+        onClick={() => navigate("/home")}  // Navigate to the home page or AppBar page
         sx={{
           marginBottom: '30px',
           backgroundColor: '#3f51b5',
@@ -67,7 +72,7 @@ const CategoriesList = () => {
       >
         {categories.map((category) => (
           <Card
-            key={category.categoryId}
+            key={category.categoryId || category.name}  // Use a fallback for categoryId if it's missing
             sx={{
               borderRadius: '10px',
               boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
@@ -80,7 +85,6 @@ const CategoriesList = () => {
               padding: '16px',
             }}
           >
-            
             {category.imageUrl && (
               <img
                 src={category.imageUrl}
