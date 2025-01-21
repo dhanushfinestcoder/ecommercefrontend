@@ -5,6 +5,7 @@ import { Container, Paper, Button, AppBar, Toolbar, IconButton, Typography } fro
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Appbar from './Appbar';
 
 export default function AddCategory() {
   const paperStyle = { padding: '50px 20px', width: 600, margin: "20px auto" };
@@ -55,8 +56,7 @@ export default function AddCategory() {
 
   return (
     <Box>
-      {/* AppBar with Back Button */}
-      <AppBar position="static">
+       <Appbar> 
         <Toolbar>
           <IconButton
             size="large"
@@ -71,7 +71,7 @@ export default function AddCategory() {
             Add Category
           </Typography>
         </Toolbar>
-      </AppBar>
+        </Appbar> 
 
       {/* Form Content */}
       <Container>

@@ -98,8 +98,10 @@ const ProductsList = () => {
                 },
               }}
             >
+              
               <CardMedia
                 component="img"
+                src='/assets/clothings.png'
                 height="200"
                 alt={obj.productName}
                 sx={{ objectFit: 'contain' }}

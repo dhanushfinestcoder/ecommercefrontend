@@ -50,29 +50,25 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 export default function Appbar() {
-  const [menuAnchorEl, setMenuAnchorEl] = useState(null); // For main menu
-  const [userAnchorEl, setUserAnchorEl] = useState(null); // For user dropdown
-  const [user, setUser] = useState(null); // For dynamic user data
-  const [loading, setLoading] = useState(true); // For loading state
-  const [error, setError] = useState(null); // For error state
-  const [searchTerm, setSearchTerm] = useState(''); // Store search term
-  const [products, setProducts] = useState([]); // Store product data
-  const [viewAllProducts, setViewAllProducts] = useState(false); // For viewing all products
-  const [currentPage, setCurrentPage] = useState(1); // For pagination
-  const [maxPrice, setMaxPrice] = useState(0); // Set a default maxPrice
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [userAnchorEl, setUserAnchorEl] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState([]);
+  const [isSearching, setIsSearching] = useState(false); // Flag for search state
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch user data dynamically
     axios
       .get('http://localhost:8080/user-info', { withCredentials: true })
       .then((response) => {
         setUser(response.data);
-        setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Failed to load user data.');
-        setLoading(false);
       });
   }, []);
 
@@ -87,39 +83,40 @@ export default function Appbar() {
     }
 
     setLoading(true);
-    setViewAllProducts(false); // Switch to search results
+    setError(null);
+    setIsSearching(true); // Set the search state to true
 
-    let splitSearch = searchTerm.split(' '); // Split the search term by spaces
-    let searchKeyword = splitSearch.filter(item => isNaN(item)).join(' '); // Remove numbers for the keyword
+    let splitSearch = searchTerm.split(' ');
+    let searchKeyword = splitSearch.filter((item) => isNaN(item)).join(' ');
     let maxPriceValue = 0;
 
-    // Check if any part of the splitSearch array is a valid number and set it as maxPrice
-    splitSearch.forEach(item => {
+    splitSearch.forEach((item) => {
       if (!isNaN(item) && item.trim()) {
-        maxPriceValue = Math.max(maxPriceValue, parseFloat(item)); // Keep the largest number as maxPrice
+        maxPriceValue = Math.max(maxPriceValue, parseFloat(item));
       }
     });
 
-    setMaxPrice(maxPriceValue); // Set the maxPrice state
+    let apiUrl = '';
+    if (maxPriceValue > 0) {
+      apiUrl = `http://localhost:8080/search/price?keyword=${encodeURIComponent(searchKeyword)}&maxPrice=${maxPriceValue}`;
+    } else {
+      apiUrl = `http://localhost:8080/SEARCH?keyword=${encodeURIComponent(searchKeyword)}`;
+    }
 
-    // Log the result to verify the split
-    console.log('Search Keyword:', searchKeyword);
-    console.log('Max Price:', maxPriceValue);
-
-    // Make the request with the correct keyword and maxPrice
     axios
-      .get(`http://localhost:8080/search/price?keyword=${encodeURIComponent(searchKeyword)}&maxPrice=${maxPriceValue}`, {
-        withCredentials: true,
-      })
+      .get(apiUrl, { withCredentials: true })
       .then((response) => {
-        console.log(response.data);
         setProducts(response.data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Error fetching products');
         setLoading(false);
       });
+  };
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
   };
 
   const handleMenuClick = (event) => {
@@ -138,28 +135,13 @@ export default function Appbar() {
     setUserAnchorEl(null);
   };
 
-  const handleViewCategoriesClick = () => {
-    navigate('/categories'); // Navigate to the Categories page
-    handleMenuClose();
-  };
-
-  const handleAddCategoryClick = () => {
-    navigate('/add-category'); // Navigate to the Add Category page
-    handleMenuClose();
-  };
-
-  const handleViewProductsClick = () => {
-    navigate('/products'); // Navigate to the View Products page
-    handleMenuClose();
-  };
-
   const handleLogout = () => {
-    console.log('Logout clicked');
     handleUserMenuClose();
   };
 
-  const handlePageChange = (event, value) => {
-    setCurrentPage(value);
+  const handleStopSearch = () => {
+    setIsSearching(false); // Stop showing search results
+    setSearchTerm('');
   };
 
   return (
@@ -176,7 +158,7 @@ export default function Appbar() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             Ecommerce
           </Typography>
           <Search>
@@ -196,13 +178,7 @@ export default function Appbar() {
             />
           </Search>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
-            {loading ? (
-              <Typography variant="body2">Loading...</Typography>
-            ) : error ? (
-              <Typography variant="body2" color="error">
-                {error}
-              </Typography>
-            ) : user ? (
+            {user ? (
               <>
                 <IconButton onClick={handleUserMenuClick} size="small">
                   <Avatar alt={user.name} src={user.picture} />
@@ -227,11 +203,61 @@ export default function Appbar() {
           </Box>
         </Toolbar>
       </AppBar>
-      <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={handleViewCategoriesClick}>View Categories</MenuItem>
-        <MenuItem onClick={handleAddCategoryClick}>Add Category</MenuItem>
-        <MenuItem onClick={handleViewProductsClick}>View Products</MenuItem>
-      </Menu>
+
+      <Box sx={{ padding: 2 }}>
+        {isSearching ? ( // Show search results
+          loading ? (
+            <CircularProgress />
+          ) : error ? (
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6">Search Results</Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ cursor: 'pointer', color: 'blue' }}
+                  onClick={handleStopSearch}
+                >
+                  Clear Search
+                </Typography>
+              </Box>
+              {products.length > 0 ? (
+                products.map((product) => (
+                  <Card key={product.id} sx={{ marginBottom: '16px', display: 'flex' }}>
+                    <CardMedia
+                      component="img"
+                      alt={product.productName}
+                      height="140"
+                      image={product.imageUrl || 'https://via.placeholder.com/150'}
+                      sx={{ width: '150px' }}
+                    />
+                    <CardContent>
+                      <Typography variant="h6">{product.productName}</Typography>
+                      <Typography variant="body1">₹{product.discountPrice}</Typography>
+                      <Typography variant="body2" sx={{ textDecoration: 'line-through' }}>
+                        ₹{product.mrp}
+                      </Typography>
+                      <Typography variant="body2">Units Available: {product.noOfUnits}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Typography>No products found.</Typography>
+              )}
+              <Pagination
+                count={Math.ceil(products.length / 10)}
+                page={currentPage}
+                onChange={handlePageChange}
+                sx={{ marginTop: 2 }}
+              />
+            </>
+          )
+        ):null // Placeholder for normal page content
+        }
+      </Box>
     </Box>
   );
 }
