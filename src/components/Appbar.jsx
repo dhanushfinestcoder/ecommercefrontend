@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { styled, alpha } from '@mui/material/styles';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import InputBase from '@mui/material/InputBase';
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  IconButton,
+  Typography,
+  InputBase,
+  Menu,
+  MenuItem,
+  Avatar,
+  CircularProgress,
+  Pagination,
+  Card,
+  CardContent,
+  CardMedia,
+} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Avatar from '@mui/material/Avatar';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { CircularProgress, Pagination, Card, CardContent, CardMedia } from '@mui/material';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -57,19 +63,15 @@ export default function Appbar() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState([]);
-  const [isSearching, setIsSearching] = useState(false); // Flag for search state
+  const [isSearching, setIsSearching] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
     axios
       .get('http://localhost:8080/user-info', { withCredentials: true })
-      .then((response) => {
-        setUser(response.data);
-      })
-      .catch(() => {
-        setError('Failed to load user data.');
-      });
+      .then((response) => setUser(response.data))
+      .catch(() => setError('Failed to load user data.'));
   }, []);
 
   const handleSearchChange = (event) => {
@@ -84,10 +86,10 @@ export default function Appbar() {
 
     setLoading(true);
     setError(null);
-    setIsSearching(true); // Set the search state to true
+    setIsSearching(true);
 
-    let splitSearch = searchTerm.split(' ');
-    let searchKeyword = splitSearch.filter((item) => isNaN(item)).join(' ');
+    const splitSearch = searchTerm.split(' ');
+    const searchKeyword = splitSearch.filter((item) => isNaN(item)).join(' ');
     let maxPriceValue = 0;
 
     splitSearch.forEach((item) => {
@@ -96,12 +98,10 @@ export default function Appbar() {
       }
     });
 
-    let apiUrl = '';
-    if (maxPriceValue > 0) {
-      apiUrl = `http://localhost:8080/search/price?keyword=${encodeURIComponent(searchKeyword)}&maxPrice=${maxPriceValue}`;
-    } else {
-      apiUrl = `http://localhost:8080/SEARCH?keyword=${encodeURIComponent(searchKeyword)}`;
-    }
+    const apiUrl =
+      maxPriceValue > 0
+        ? `http://localhost:8080/search/price?keyword=${encodeURIComponent(searchKeyword)}&maxPrice=${maxPriceValue}`
+        : `http://localhost:8080/SEARCH?keyword=${encodeURIComponent(searchKeyword)}`;
 
     axios
       .get(apiUrl, { withCredentials: true })
@@ -113,10 +113,6 @@ export default function Appbar() {
         setError('Error fetching products');
         setLoading(false);
       });
-  };
-
-  const handlePageChange = (event, value) => {
-    setCurrentPage(value);
   };
 
   const handleMenuClick = (event) => {
@@ -136,12 +132,17 @@ export default function Appbar() {
   };
 
   const handleLogout = () => {
+    setUser(null);
     handleUserMenuClose();
   };
 
   const handleStopSearch = () => {
-    setIsSearching(false); // Stop showing search results
+    setIsSearching(false);
     setSearchTerm('');
+  };
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
   };
 
   return (
@@ -158,6 +159,15 @@ export default function Appbar() {
           >
             <MenuIcon />
           </IconButton>
+          <Menu
+            anchorEl={menuAnchorEl}
+            open={Boolean(menuAnchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={() => navigate('/home')}>Home</MenuItem>
+            <MenuItem onClick={() => navigate('/add-category')}>Add Category</MenuItem>
+            <MenuItem onClick={() => navigate('/products')}>View Products</MenuItem>
+          </Menu>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             Ecommerce
           </Typography>
@@ -170,11 +180,7 @@ export default function Appbar() {
               onChange={handleSearchChange}
               placeholder="Search…"
               inputProps={{ 'aria-label': 'search' }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
-              }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </Search>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
@@ -205,7 +211,7 @@ export default function Appbar() {
       </AppBar>
 
       <Box sx={{ padding: 2 }}>
-        {isSearching ? ( // Show search results
+        {isSearching ? (
           loading ? (
             <CircularProgress />
           ) : error ? (
@@ -255,8 +261,7 @@ export default function Appbar() {
               />
             </>
           )
-        ):null // Placeholder for normal page content
-        }
+        ) : null}
       </Box>
     </Box>
   );
